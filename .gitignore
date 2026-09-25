@@ -1,0 +1,21 @@
+node_modules/
+
+# Crawl output and local scratch
+*.log
+del-*.txt
+crawl.txt
+
+# OS and editor
+.DS_Store
+.idea/
+.vscode/
+
+# Env
+.env
+.env.*
+
+# Build and test artifacts
+dist/
+coverage/
+.vitest/
+*.tsbuildinfo
