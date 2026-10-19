@@ -93,9 +93,12 @@ Run with `npm run tests` (Vitest). Tests are grouped by module:
 
 ## 8. Results
 
-I tested the crawler on the following sites:
+I tested the crawler (with the default concurrency of 5) on the following sites:
 
 - **crawlme.monzo.com:** 42,011 pages in about 27 minutes, with no errors and no duplicate prints in the output. The count matches the site's structure (1,000 product and 1,000 blog listing pages, 20 items each, plus the top-level pages).
+  - with concurrency set to 20, the crawl took about 7 minutes with no errors and no duplicates.
+  - with concurrency set to 100, the crawl took about 51 seconds with no errors and no duplicates.
+  - with concurrency set to 500, the crawl took about 29 seconds with no errors and no duplicates.
 - **quotes.toscrape.com:** 214 pages in about 14 seconds. (Before the http/https and redirect handling, the same crawl made 428 visits.)
 - **books.toscrape.com:** 1,195 pages in about 46 seconds, with no errors and no duplicate prints in the output. That is every book page (1,000), the 50 catalogue listing pages, the category pages, and `/` plus `/index.html`.
 
@@ -106,18 +109,18 @@ I tested the crawler on the following sites:
 
 The 42,011-page crawl was complete and correct, but 27 minutes is too slow. A crash cannot be resumed, a spider trap would run forever, and the crawler is not polite enough to point at a site we do not own. Here is what I would improve:
 
-* **Speed.** 
+* **Speed** 
   * Replace fixed batches with a worker pool so a finished request immediately starts the next URL instead of waiting for the slowest fetch in the batch. That matters most on mixed-latency sites, where one slow page leaves slots idle until the whole batch completes.
 
-* **Reliability.** 
+* **Reliability** 
   * Add a per-request timeout (`AbortController` — `fetch` has none), and retry timeouts / 5xx / 429 with backoff. 
   * Persist the queue and `seen` set (Redis or a database) so a crash can resume, and stream pages out instead of collecting them in memory.
   * Cap pages, depth or wall-clock time so a calendar-style spider trap cannot run forever.
 
-* **Politeness.**
+* **Politeness**
   * Respect `robots.txt`, and send a `User-Agent` with a contact address.
   * Rate-limit: the default of five concurrent requests with no delay was acceptable on the sites I tested (that welcome public crawling!); against a site I do not own I would lower concurrency or add a delay or requests-per-second cap.
 
-* **Correctness at scale.** 
+* **Correctness at scale** 
   * Treat `<link rel="canonical">` or a body hash as the page identity so that `/` and `/index.html` (or `/tag/love/` and `/tag/love/page/1/`) are not crawled twice when they return the same HTML.
   * Strip tracking query params (`utm_*`, and session ids some sites put in every URL for anonymous visitors) so they don’t look like new pages. `?page=1` vs `?page=2` should still count as different pages.
